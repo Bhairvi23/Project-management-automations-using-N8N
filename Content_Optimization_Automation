@@ -1,0 +1,1091 @@
+{
+  "name": "Content Optimization Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Form",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Link",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        380
+      ],
+      "id": "aef0fb3e-6da3-4f65-b47f-0778045b81cb",
+      "name": "On form submission",
+      "webhookId": "c0791596-ada8-407c-9669-f54396d88940"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://80.225.198.71:11235/crawl",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "urls",
+              "value": "=https://siddhant.site"
+            },
+            {
+              "name": "priority",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        160
+      ],
+      "id": "d011ad64-732d-4f7d-a692-c0a78e5fd674",
+      "name": "get_article_content",
+      "notesInFlow": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7n8gXv1cNn7V3cpE",
+          "name": "craw4ai sisi"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        160
+      ],
+      "id": "2c6f14b5-9667-4574-88f8-556975c1b9ff",
+      "name": "5_sec",
+      "webhookId": "ac0bb2e9-a1f8-47df-823b-074a0e825f6c"
+    },
+    {
+      "parameters": {
+        "url": "=http://80.225.198.71:11235/task/{{ $json.task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        160
+      ],
+      "id": "b96ecfb0-6446-457c-a091-b6e39a89726a",
+      "name": "get_status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7n8gXv1cNn7V3cpE",
+          "name": "craw4ai sisi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f42941b7-46c6-44f9-95d6-80065c27c3a9",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        540,
+        160
+      ],
+      "id": "a1df239c-9f34-4e57-a2a2-aa2509cf1cd7",
+      "name": "is_completed"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.result.cleaned_html }}",
+        "destinationKey": "markdown",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        880,
+        80
+      ],
+      "id": "d48a9360-f2a5-4ed4-a1eb-a299fd897465",
+      "name": "Markdown"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9177b0ac-024c-4088-a1b4-9254a53244e0",
+              "name": "result.url",
+              "value": "={{ $json.result.url }}",
+              "type": "string"
+            },
+            {
+              "id": "bb4b7ad9-dc32-40d5-93d7-51582c64d99f",
+              "name": "result.metadata.title",
+              "value": "={{ $json.result.metadata.title }}",
+              "type": "string"
+            },
+            {
+              "id": "64dfd766-9b2e-4349-8f4f-8771202cb0d4",
+              "name": "result.cleaned_html",
+              "value": "={{ $json.result.cleaned_html }}",
+              "type": "string"
+            },
+            {
+              "id": "a74a89ab-aa6e-4ff5-934a-c6176702c127",
+              "name": "result.metadata.description",
+              "value": "={{ $json.result.metadata.description }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        80
+      ],
+      "id": "8491481b-fcc1-45e4-b86c-0fbf8f03579d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "={{ \"name=\" + \"'\"+$json.Link.split('/').filter(Boolean).pop()+\"'\" }}",
+        "limit": 1,
+        "filter": {
+          "includeTrashed": "={{ false }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        60,
+        600
+      ],
+      "id": "b46d5e35-7660-4062-bf58-99e57da6d008",
+      "name": "Google Drive",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "Jmq3gYK6oK1xrC6P",
+          "name": "BigQuery Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bf20030a-7234-4e88-bcc9-cb815ac8dcd9",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        600
+      ],
+      "id": "4220a571-1218-4b80-9f0f-e845318f7555",
+      "name": "if_sheet_exists"
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "title": "={{ $('On form submission').item.json.Link.split('/').filter(Boolean).pop()  }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        400,
+        680
+      ],
+      "id": "77c8dec7-820a-4c7c-b181-17d3baacbad2",
+      "name": "create_new_spreadsheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g3s5drHHPv3JQI14",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": {
+          "__rl": true,
+          "value": "vinci-433505",
+          "mode": "list",
+          "cachedResultName": "vinci ",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=vinci-433505"
+        },
+        "sqlQuery": "DECLARE target_url STRING DEFAULT '{{ $('On form submission').item.json.Link }}';\nDECLARE current_period_start DATE DEFAULT DATE_SUB(CURRENT_DATE(), INTERVAL 5 DAY);\nDECLARE previous_period_start DATE DEFAULT DATE_SUB(current_period_start, INTERVAL 5 DAY);\n\nWITH \n-- Current period query performance (last 5 days)\ncurrent_period AS (\n  SELECT\n    query,\n    SUM(clicks) AS current_clicks,\n    SUM(impressions) AS current_impressions,\n    SAFE_DIVIDE(SUM(clicks), SUM(impressions)) AS current_ctr,\n    SAFE_DIVIDE(SUM(sum_position), SUM(impressions)) AS current_avg_position\n  FROM `vinci-433505.searchconsole_export.searchdata_url_impression`\n  WHERE \n    site_url = target_url\n    AND data_date >= current_period_start\n    AND data_date < CURRENT_DATE()\n    AND is_anonymized_query = False\n  GROUP BY query\n),\n\n-- Previous period query performance (5 days ago)\nprevious_period AS (\n  SELECT\n    query,\n    SUM(clicks) AS previous_clicks,\n    SUM(impressions) AS previous_impressions,\n    SAFE_DIVIDE(SUM(clicks), SUM(impressions)) AS previous_ctr,\n    SAFE_DIVIDE(SUM(sum_position), SUM(impressions)) AS previous_avg_position\n  FROM `vinci-433505.searchconsole_export.searchdata_url_impression`\n  WHERE \n    site_url = target_url\n    AND data_date >= previous_period_start\n    AND data_date < current_period_start\n    AND is_anonymized_query = False\n  GROUP BY query\n),\n\n-- Combined data with differences\ncombined_data AS (\n  SELECT\n    COALESCE(c.query, p.query) AS query,\n    \n    -- Current period metrics\n    IFNULL(c.current_clicks, 0) AS current_clicks,\n    IFNULL(p.previous_clicks, 0) AS previous_clicks,\n    \n    IFNULL(c.current_impressions, 0) AS current_impressions,\n    IFNULL(p.previous_impressions, 0) AS previous_impressions,\n    \n    IFNULL(c.current_ctr, 0) AS current_ctr,\n    IFNULL(p.previous_ctr, 0) AS previous_ctr,\n    \n    IFNULL(c.current_avg_position, 0) AS current_avg_position,\n    IFNULL(p.previous_avg_position, 0) AS previous_avg_position,\n    \n    -- Absolute differences\n    IFNULL(c.current_clicks, 0) - IFNULL(p.previous_clicks, 0) AS clicks_diff,\n    IFNULL(c.current_impressions, 0) - IFNULL(p.previous_impressions, 0) AS impressions_diff,\n    IFNULL(c.current_ctr, 0) - IFNULL(p.previous_ctr, 0) AS ctr_diff,\n    IFNULL(p.previous_avg_position, 0) - IFNULL(c.current_avg_position, 0) AS position_diff,\n    \n    -- Percentage differences\n    CASE \n      WHEN IFNULL(p.previous_clicks, 0) = 0 AND IFNULL(c.current_clicks, 0) > 0 THEN 100\n      WHEN IFNULL(p.previous_clicks, 0) = 0 THEN 0\n      ELSE ROUND((IFNULL(c.current_clicks, 0) - IFNULL(p.previous_clicks, 0)) / IFNULL(p.previous_clicks, 0) * 100, 2)\n    END AS clicks_diff_pct,\n    \n    CASE \n      WHEN IFNULL(p.previous_impressions, 0) = 0 AND IFNULL(c.current_impressions, 0) > 0 THEN 100\n      WHEN IFNULL(p.previous_impressions, 0) = 0 THEN 0\n      ELSE ROUND((IFNULL(c.current_impressions, 0) - IFNULL(p.previous_impressions, 0)) / IFNULL(p.previous_impressions, 0) * 100, 2)\n    END AS impressions_diff_pct,\n    \n    CASE \n      WHEN IFNULL(p.previous_ctr, 0) = 0 AND IFNULL(c.current_ctr, 0) > 0 THEN 100\n      WHEN IFNULL(p.previous_ctr, 0) = 0 THEN 0\n      ELSE ROUND((IFNULL(c.current_ctr, 0) - IFNULL(p.previous_ctr, 0)) / IFNULL(p.previous_ctr, 0) * 100, 2)\n    END AS ctr_diff_pct\n  FROM current_period c\n  FULL OUTER JOIN previous_period p ON c.query = p.query\n)\n\n-- Main query with categorization\nSELECT\n  query,\n  \n  -- Paired metrics (current next to previous)\n  current_clicks,\n  previous_clicks,\n  clicks_diff,\n  clicks_diff_pct,\n  \n  current_impressions,\n  previous_impressions,\n  impressions_diff,\n  impressions_diff_pct,\n  \n  current_ctr,\n  previous_ctr,\n  ctr_diff,\n  ctr_diff_pct,\n  \n  current_avg_position,\n  previous_avg_position,\n  position_diff,\n  \n  -- Categorization\n  CASE\n    WHEN clicks_diff > 0 THEN 'Gaining'\n    WHEN clicks_diff < 0 THEN 'Declining'\n    ELSE 'Stable'\n  END AS trend_category\n\nFROM combined_data\nWHERE \n  -- Filter to include only keywords with meaningful data\n  (current_clicks > 0 OR previous_clicks > 0 OR current_impressions > 10 OR previous_impressions > 10)\nORDER BY \n  -- Default ordering by absolute click difference (biggest gains/losses first)\n  ABS(clicks_diff) DESC,\n  current_impressions DESC",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        600
+      ],
+      "id": "1ddd6d1b-2f60-4d2f-b78d-ff35b3d3aeed",
+      "name": "get_article_performance",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "Jmq3gYK6oK1xrC6P",
+          "name": "BigQuery Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "title": "={{$now.format('yyyy-MM-dd')}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        400,
+        520
+      ],
+      "id": "13ee3f14-b998-4f67-a3a2-b7dedf24147a",
+      "name": "add_sheet_0",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g3s5drHHPv3JQI14",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "title": "={{ $now.format('yyyy-MM-dd')}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        580,
+        680
+      ],
+      "id": "52a5ee3a-9b22-48de-9614-297487e0f852",
+      "name": "add_sheet_1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g3s5drHHPv3JQI14",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        740,
+        600
+      ],
+      "id": "436d3dda-27fd-49ab-839a-4d6dbaec40f0",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Merge').item.json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $now.format('yyyy-MM-dd') }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_clicks",
+              "displayName": "current_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "previous_clicks",
+              "displayName": "previous_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "clicks_diff",
+              "displayName": "clicks_diff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "clicks_diff_pct",
+              "displayName": "clicks_diff_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_impressions",
+              "displayName": "current_impressions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "previous_impressions",
+              "displayName": "previous_impressions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "impressions_diff",
+              "displayName": "impressions_diff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "impressions_diff_pct",
+              "displayName": "impressions_diff_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_ctr",
+              "displayName": "current_ctr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "previous_ctr",
+              "displayName": "previous_ctr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ctr_diff",
+              "displayName": "ctr_diff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ctr_diff_pct",
+              "displayName": "ctr_diff_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_avg_position",
+              "displayName": "current_avg_position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "previous_avg_position",
+              "displayName": "previous_avg_position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "position_diff",
+              "displayName": "position_diff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "trend_category",
+              "displayName": "trend_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        600
+      ],
+      "id": "576b09f0-0f5d-4342-aa81-8b859f664933",
+      "name": "insert_performance",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "g3s5drHHPv3JQI14",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        160
+      ],
+      "id": "d5b3731f-700a-4c6e-905e-e832256051c1",
+      "name": "Merge1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "performance",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        260
+      ],
+      "id": "0becc496-cd73-42c7-bf33-984ccf5ec5c1",
+      "name": "set_key"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "deepseek-r1-distill-llama-70b",
+          "mode": "list",
+          "cachedResultName": "DEEPSEEK-R1-DISTILL-LLAMA-70B"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a copywriter with a versatile skillset in SEO.\nYou specialize in data-driven optimization and improve existing articles based on real traffic data.\n\nYour data comes from Google Search Console and shows how well keywords are performing.\nYou rely strictly on the underlying data and do not make up any false information.\n\nYour goal is always to improve the article using data-driven insights.\n\nAdditionally, you are an HTML expert and only provide your responses as HTML-formatted output.\nWe do not need <!DOCTYPE>, <meta>, or <title> tags — only the HTML that structures the content itself.",
+              "role": "system"
+            },
+            {
+              "content": "=Analyze the existing article:\n<{{ $json.content }}>\nin detail, and understand both the content and the search intent that the article is meant to satisfy.\n\nNext, analyze ALL keywords from Google Search Console.\nThese keywords show how well the article performs for specific search queries.\n\nThe performance data is as follows:\n{{ JSON.stringify($('Merge1').all()[1].json.performance) }}  \nPerform the following optimizations:\n\nAnalyze the existing article content in terms of structure, readability, and SEO relevance.\n\nIdentify optimization opportunities within the article based on the analyzed data.\n\nDevelop new suggestions for:\n\nThe title (max. 60 characters).\n\nThe meta description, which must include relevant keywords from the performance data.\n\nCreate optimized text passages that naturally integrate relevant keywords from Google Search Console.\n\nSpecify which section or chapter the passage belongs to, so it's easy to locate and update.\n\nCreate at least one optimized passage per paragraph.\n\nEnsure the format clearly shows the original passage and the improved version for quick replacement.\n\nWrite new text sections using keywords from the Search Console data that couldn’t be used in step 4.\n\nUse the heading: “New Text Passages”.\n\nCreate an HTML table that lists your selected keywords from the Google Search Console data.\n\nFormat your output as follows and avoid any errors:\n\nA brief analysis report of the current article content.\n\nFor each suggested improvement, show:\n\nThe original passage.\n\nThe SEO-optimized version directly underneath.\n\nProvide 5 optimized title suggestions.\n\nProvide 5 optimized meta description suggestions.\n\nA list of revised text passages, each naturally integrating the identified keywords and phrases.\n\nRevise at least 5 passages, preferably more, so the text fully incorporates relevant Search Console keywords.\n\nAn HTML table showing the selected keywords from the performance data.\n\nEverything must be formatted as HTML.\nWe do not need <!DOCTYPE>, <meta>, or <title> tags — only the HTML that structurally presents the content.\n\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1480,
+        160
+      ],
+      "id": "acb2939c-81eb-49d0-a49e-d31cfb916cd2",
+      "name": "create_report",
+      "executeOnce": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "zvsDfxdNawNTdMcI",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6c07931f-d135-44cb-a9f5-d0e80887a0b4",
+              "name": "url",
+              "value": "={{ $json.result.url }}",
+              "type": "string"
+            },
+            {
+              "id": "d3223ba3-1e08-47b2-9265-f3fb178a49ee",
+              "name": "title",
+              "value": "={{ $json.result.metadata.title }}",
+              "type": "string"
+            },
+            {
+              "id": "13da4adc-a125-4410-b2ca-c0c239b939ab",
+              "name": "description",
+              "value": "={{ $json.result.metadata.description }}",
+              "type": "string"
+            },
+            {
+              "id": "03d09f45-3ece-4da2-953b-fdbe54cd2896",
+              "name": "content",
+              "value": "={{ $json.markdown }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1060,
+        80
+      ],
+      "id": "9be1960b-644e-4104-a432-5c0d91e0dd48",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "654e6696-7705-4021-87df-1edf19bbe439",
+              "name": "message.content",
+              "value": "={{ $json.message.content}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1800,
+        160
+      ],
+      "id": "bd35aab5-4cf3-4684-b428-f14cd9034cda",
+      "name": "get_clean_html",
+      "notes": ".replace('html', '').replaceAll(\"```\", '').replaceAll(\"\\n\", \"\") "
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "base64",
+        "options": {
+          "fileName": "test.html",
+          "mimeType": "={{ $json.mimetype }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2120,
+        160
+      ],
+      "id": "bee46e87-63ef-4e79-abe8-70dfe6f17efb",
+      "name": "convert_to_html_file"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      base64: Buffer.from($input.all()[0].json.message.content).toString('base64'),\n      mimetype: \"text/html\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        160
+      ],
+      "id": "a9633108-b41e-428e-95bf-3241e2eefe01",
+      "name": "convert_to_base64"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "name": "Content_Optimisation",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "root",
+          "mode": "list",
+          "cachedResultName": "/ (Root folder)",
+          "cachedResultUrl": "https://drive.google.com/drive"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2280,
+        160
+      ],
+      "id": "23cdd43e-6a4e-49dc-a83c-f4b951f5bacd",
+      "name": "save_report",
+      "credentials": {
+        "googleApi": {
+          "id": "Jmq3gYK6oK1xrC6P",
+          "name": "BigQuery Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Crawl Article",
+        "height": 420,
+        "width": 1420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4ac138f3-a060-49e9-9557-18f1b182fd73",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Generate Optimized Report",
+        "height": 420,
+        "width": 1040
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        0
+      ],
+      "id": "8484d01e-cc70-4680-9756-0ed2cdfdd87b",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Generate and Save Performance Report",
+        "height": 420,
+        "width": 2480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        20,
+        460
+      ],
+      "id": "9308d75e-9198-49f1-b639-9a2d944cb7b1",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "get_article_content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_article_content": {
+      "main": [
+        [
+          {
+            "node": "5_sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5_sec": {
+      "main": [
+        [
+          {
+            "node": "get_status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_status": {
+      "main": [
+        [
+          {
+            "node": "is_completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "is_completed": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5_sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "if_sheet_exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if_sheet_exists": {
+      "main": [
+        [
+          {
+            "node": "add_sheet_0",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "create_new_spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_new_spreadsheet": {
+      "main": [
+        [
+          {
+            "node": "add_sheet_1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_article_performance": {
+      "main": [
+        [
+          {
+            "node": "insert_performance",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "set_key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add_sheet_1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "add_sheet_0": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "get_article_performance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "create_report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_key": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "create_report": {
+      "main": [
+        [
+          {
+            "node": "get_clean_html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_clean_html": {
+      "main": [
+        [
+          {
+            "node": "convert_to_base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "convert_to_base64": {
+      "main": [
+        [
+          {
+            "node": "convert_to_html_file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "convert_to_html_file": {
+      "main": [
+        [
+          {
+            "node": "save_report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0f5d5ff5-2ac3-4e6e-8104-bf247e75fe2a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "357fc344b068dee90d688843eec503f49582c92b6f30a126a38346a46c1f744a"
+  },
+  "id": "t0vJkAfvZYomzsRu",
+  "tags": [
+    {
+      "createdAt": "2025-04-15T08:52:37.873Z",
+      "updatedAt": "2025-04-15T08:52:37.873Z",
+      "id": "JzCOQVMuQ8uVPhPC",
+      "name": "SEO"
+    }
+  ]
+}

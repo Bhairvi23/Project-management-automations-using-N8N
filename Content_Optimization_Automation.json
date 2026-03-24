@@ -1,0 +1,186 @@
+{
+  "name": "Content Optimization Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Form",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Link",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "name": "On form submission"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<CRAWLER_API_URL>/crawl",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "urls",
+              "value": "=<TARGET_URL>"
+            },
+            {
+              "name": "priority",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "get_article_content",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<CRAWLER_API_CREDENTIAL>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "name": "5_sec"
+    },
+    {
+      "parameters": {
+        "url": "=<CRAWLER_API_URL>/task/{{ $json.task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "get_status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<CRAWLER_API_CREDENTIAL>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.if",
+      "name": "is_completed"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.markdown",
+      "name": "Markdown"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.set",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount"
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "name": "Google Drive",
+      "credentials": {
+        "googleApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GCP_SERVICE_ACCOUNT>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.if",
+      "name": "if_sheet_exists"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "create_new_spreadsheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GOOGLE_SHEETS_ACCOUNT>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "<GCP_PROJECT_ID>",
+        "sqlQuery": "SELECT * FROM `<GCP_PROJECT_ID>.<BQ_DATASET.TABLE>` WHERE site_url = '{{ <TARGET_URL> }}'"
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "name": "get_article_performance",
+      "credentials": {
+        "googleApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GCP_SERVICE_ACCOUNT>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "insert_performance",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GOOGLE_SHEETS_ACCOUNT>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": "<LLM_MODEL_ID>"
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "name": "create_report",
+      "credentials": {
+        "openAiApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<OPENAI_ACCOUNT>"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.set",
+      "name": "get_clean_html"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.code",
+      "name": "convert_to_base64"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.convertToFile",
+      "name": "convert_to_html_file"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "name": "Content_Optimisation"
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "name": "save_report",
+      "credentials": {
+        "googleApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GCP_SERVICE_ACCOUNT>"
+        }
+      }
+    }
+  ],
+  "meta": {
+    "instanceId": "<INSTANCE_ID>"
+  }
+}

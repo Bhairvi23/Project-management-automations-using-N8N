@@ -1,0 +1,230 @@
+{
+  "name": "Keyword Rank Tracker (Production Template)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "value": 24
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"domains\": [\n    {\n      \"domain\": \"<DOMAIN_NAME>\",\n      \"searchdata_url_impression\": \"<BQ_DATASET>.<SEARCH_CONSOLE_TABLE_URL>\",\n      \"searchdata_site_impression\": \"<BQ_DATASET>.<SEARCH_CONSOLE_TABLE_SITE>\"\n    }\n  ]\n}"
+      },
+      "type": "n8n-nodes-base.set",
+      "name": "Domains Config"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "domains"
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "name": "Split Domains"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "name": "Loop Domains"
+    },
+
+    {
+      "parameters": {
+        "documentId": "<GOOGLE_SHEET_ID>",
+        "sheetName": "Tracked Keywords"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "Get Tracked Keywords",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GOOGLE_SHEETS_CREDENTIAL>"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { keywordString: $input.all().map(i => `'${i.json.keyword}'`).join(', ') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "name": "Format Keywords"
+    },
+
+    {
+      "parameters": {
+        "documentId": "<GOOGLE_SHEET_ID>",
+        "sheetName": "Rank Tracking"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "Get Existing Rankings",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GOOGLE_SHEETS_CREDENTIAL>"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isEmpty() }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "name": "Check Existing Data"
+    },
+
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "date"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.sort",
+      "name": "Sort Dates"
+    },
+
+    {
+      "parameters": {
+        "keep": "lastItems"
+      },
+      "type": "n8n-nodes-base.limit",
+      "name": "Get Latest Date"
+    },
+
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "date",
+              "value": "={{ $json.date }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "name": "Use Existing Date"
+    },
+
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "date",
+              "value": "={{ $now.minus({ days: 7 }).format('yyyy-MM-dd') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "name": "Fallback Date"
+    },
+
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition"
+      },
+      "type": "n8n-nodes-base.merge",
+      "name": "Merge Inputs"
+    },
+
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "<GCP_PROJECT_ID>",
+        "sqlQuery": "SELECT \n  data_date AS date,\n  query AS keyword,\n  site_url,\n  device,\n  SUM(clicks) AS clicks,\n  SUM(impressions) AS impressions,\n  ROUND(SUM(sum_position)/SUM(impressions),1) AS position,\n  ROUND(SAFE_DIVIDE(SUM(clicks), SUM(impressions))*100,2) AS ctr\nFROM `{{ $('Loop Domains').item.json.searchdata_url_impression }}`\nWHERE data_date > '{{ $('Merge Inputs').item.json.date }}'\nAND LOWER(query) IN ({{ $json.keywordString }})\nAND NOT is_anonymized_query\nGROUP BY date, keyword, site_url, device\nORDER BY date ASC"
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "name": "Fetch Rankings",
+      "credentials": {
+        "googleApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GCP_SERVICE_ACCOUNT>"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": "<GOOGLE_SHEET_ID>",
+        "sheetName": "Rank Tracking"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "Save Rankings",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GOOGLE_SHEETS_CREDENTIAL>"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "<GCP_PROJECT_ID>",
+        "sqlQuery": "SELECT \n  data_date,\n  query,\n  site_url,\n  device,\n  SUM(clicks) as total_clicks,\n  SUM(impressions) as total_impressions,\n  SUM(sum_position)/SUM(impressions) as avg_position,\n  SAFE_DIVIDE(SUM(clicks), SUM(impressions))*100 as ctr_percentage\nFROM `{{ $('Loop Domains').item.json.searchdata_url_impression }}`\nWHERE data_date > '{{ $json.date }}'\nAND SAFE_DIVIDE(sum_position, impressions) <= 50\nGROUP BY data_date, query, site_url, device\nORDER BY data_date DESC"
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "name": "Fetch Opportunities",
+      "credentials": {
+        "googleApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GCP_SERVICE_ACCOUNT>"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": "<GOOGLE_SHEET_ID>",
+        "sheetName": "Top Ranking Keywords"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "Save Opportunities",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<GOOGLE_SHEETS_CREDENTIAL>"
+        }
+      }
+    }
+  ],
+
+  "settings": {
+    "executionOrder": "v1"
+  },
+
+  "meta": {
+    "instanceId": "<INSTANCE_ID>"
+  }
+}

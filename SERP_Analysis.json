@@ -1,0 +1,163 @@
+{
+  "name": "SERP Analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Keyword Research Form",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Focus Keyword",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Country",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "de" },
+                  { "option": "us" },
+                  {}
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "id": "<FORM_TRIGGER_ID>",
+      "name": "On form submission",
+      "webhookId": "<WEBHOOK_ID>"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "serpApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "id": "<HTTP_NODE_1>",
+      "name": "get_desktop_serp_results",
+      "credentials": {
+        "serpApi": {
+          "id": "<SERPAPI_CREDENTIAL_ID>",
+          "name": "<SERPAPI_ACCOUNT_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "serpApi"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "id": "<HTTP_NODE_2>",
+      "name": "get_mobile_serp_results",
+      "credentials": {
+        "serpApi": {
+          "id": "<SERPAPI_CREDENTIAL_ID>",
+          "name": "<SERPAPI_ACCOUNT_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<CRAWLER_API_BASE_URL>/crawl",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "id": "<CRAWL_NODE>",
+      "name": "get_page_content",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "<CRAWLER_AUTH_ID>",
+          "name": "<CRAWLER_AUTH_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "<CRAWLER_API_BASE_URL>/task/{{ $json.task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "id": "<STATUS_NODE>",
+      "name": "get_status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "<CRAWLER_AUTH_ID>",
+          "name": "<CRAWLER_AUTH_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": "gpt-4.1-mini"
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "id": "<OPENAI_NODE>",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "<OPENAI_CREDENTIAL_ID>",
+          "name": "<OPENAI_ACCOUNT_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "<GOOGLE_SHEET_ID>",
+        "sheetName": "<SHEET_NAME_SERPS>"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "id": "<GSHEET_SERP_NODE>",
+      "name": "insert_serp_analysis",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<GOOGLE_SHEETS_CREDENTIAL_ID>",
+          "name": "<GOOGLE_ACCOUNT_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "<GOOGLE_SHEET_ID>",
+        "sheetName": "<SHEET_NAME_FAQ>"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "id": "<GSHEET_FAQ_NODE>",
+      "name": "insert_faqs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<GOOGLE_SHEETS_CREDENTIAL_ID>",
+          "name": "<GOOGLE_ACCOUNT_NAME>"
+        }
+      }
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<INSTANCE_ID>"
+  },
+  "id": "<WORKFLOW_ID>",
+  "tags": [
+    {
+      "id": "<TAG_ID_1>",
+      "name": "SEO"
+    },
+    {
+      "id": "<TAG_ID_2>",
+      "name": "work-in-progress"
+    }
+  ]
+}
